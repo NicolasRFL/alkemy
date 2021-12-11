@@ -3,8 +3,8 @@ const app = express();
 const mysql = require("mysql");
 const cors = require("cors");
 
-app.use(mysql);
-app.use(cors);
+app.use(cors());
+app.use(express.json());
 
 const db = mysql.createConnection({
    user: "root",
@@ -33,11 +33,41 @@ app.post("/create", (req,res) =>{
 }
 );
 
+app.get("/operaciones",(req,res)=>{
+  const id=req.body.id;
 
+  db.query("SELECT * FROM operaciones WHERE ?",
+  [id],(err,result)=>{
+    if (err){
+      console.log(err);
+    }
+    else{
+      res.send(result);
+    }
+  })
+});
+
+app.put("/update", (req, res) => {
+  const id = req.body.id;
+  const monto = req.body.monto;
+  db.query(
+    "UPDATE operaciones SET monto = ? WHERE id = ?",
+    [monto, id],
+    (err, result) => {
+      if (err) {
+        console.log(err);
+      } else {
+        res.send(result);
+      }
+    }
+  );
+});
+
+app.get("/",(req,res)=>{
+  res.setHeader('Content-type','text/html');
+  res.send('Server waiting');
+});
 
 var server = app.listen(3030, function () {
-   var host = server.address().address
-   var port = server.address().port
-   
-   console.log("Example app listening at http://%s:%s", host, port)
+   console.log("Server ready at http://localhost:3030");
 })
