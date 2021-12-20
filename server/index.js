@@ -4,6 +4,7 @@ const mysql = require("mysql");
 const cors = require("cors");
 
 app.use(cors());
+//Enable simple cors usage
 app.use(express.json());
 
 const db = mysql.createConnection({
@@ -14,14 +15,14 @@ const db = mysql.createConnection({
 });
 
 app.post("/create", (req,res) =>{
-   const concepto = req.body.concepto;
-   const monto = req.body.monto;
-   const fecha = req.body.fecha;
-   const tipo = req.body.tipo;
+   const concept = req.body.concept;
+   const amount = req.body.amount;
+   const opDate = req.body.opDate;
+   const opType = req.body.opType;
 
    db.query(
-      "INSERT INTO operaciones (concepto,monto,fecha,tipo) VALUES (?,?,?,?)",
-      [concepto,monto,fecha,tipo],
+      "INSERT INTO operaciones (concept,amount,opDate,opType) VALUES (?,?,?,?)",
+      [concept,amount,opDate,opType],
       (err, result) => {
         if (err) {
           console.log(err);
@@ -34,10 +35,8 @@ app.post("/create", (req,res) =>{
 );
 
 app.get("/operaciones",(req,res)=>{
-  const id=req.body.id;
 
-  db.query("SELECT * FROM operaciones WHERE ?",
-  [id],(err,result)=>{
+  db.query("SELECT * FROM operaciones",(err,result)=>{
     if (err){
       console.log(err);
     }
@@ -49,10 +48,10 @@ app.get("/operaciones",(req,res)=>{
 
 app.put("/update", (req, res) => {
   const id = req.body.id;
-  const monto = req.body.monto;
+  const amount = req.body.amount;
   db.query(
-    "UPDATE operaciones SET monto = ? WHERE id = ?",
-    [monto, id],
+    "UPDATE operaciones SET amount = ? WHERE id = ?",
+    [amount, id],
     (err, result) => {
       if (err) {
         console.log(err);
@@ -61,6 +60,17 @@ app.put("/update", (req, res) => {
       }
     }
   );
+});
+
+app.delete("/delete/:id", (req, res) => {
+  const id = req.params.id;
+  db.query("DELETE FROM operaciones WHERE id = ?", id, (err, result) => {
+    if (err) {
+      console.log(err);
+    } else {
+      res.send(result);
+    }
+  });
 });
 
 app.get("/",(req,res)=>{
