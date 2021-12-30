@@ -37,7 +37,38 @@
   }
 }
 
-.tableTransactions{
-  display:grid;
-  grid-template-columns: auto auto auto auto auto;
+#selectLabel{
+  font-style: italic;
+}
+
+#errorAmount{
+  font-style:italic;
+  size:14px;
+}
+
+.alert{
+  padding:0;
+}
+
+#title{
+  margin:5vh 0 5vh 0;
+}
+
+#table{
+  margin-top:3vh;
+  margin-bottom:3vh;
+}
+
+#succAlert{
+  margin-top:3vh;
+}
+
+.alert-shown {
+  opacity: 1;
+  transition: all 250ms linear;
+}
+
+.alert-hidden {
+  opacity: 0;
+  transition: all 250ms linear 2s;
 }

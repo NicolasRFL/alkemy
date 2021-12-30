@@ -11,7 +11,4 @@ create table operaciones
     opType varchar(30)
 );
 
-insert into operaciones values(1,'erez',25,now(),'Gerente Tecnico');
-
 select * from operaciones;
-drop table operaciones;
