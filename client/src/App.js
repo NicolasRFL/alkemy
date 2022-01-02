@@ -1,5 +1,5 @@
 import './App.css';
-import { useMemo, useState,useEffect, isValidElement } from "react";
+import { useMemo, useState,useEffect,useRef } from "react";
 //Implementing state hook
 import Axios from "axios";
 //Using Axios for AJAX requirement
@@ -12,25 +12,186 @@ import Badge from 'react-bootstrap/Badge';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import BTable from 'react-bootstrap/Table';
 
-import { useTable} from 'react-table'
+import { BrowserRouter as Router, Routes, Route,Link } from "react-router-dom";
+import { useTable, useSortBy } from 'react-table';
+
+export default function App() {
+  return (
+    <Router>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Home/>} />
+        <Route path="abm" element={<ABM/>} />
+        <Route path="*" element={<NotFound/>} />
+      </Routes>
+    </Router>
+  );
+}
+
+function NotFound() {
+  return <p className='m404'>Error 404 Ha llegado a una página que no existe</p>;
+}
+
+function Navbar(){
+  return (<nav id="navbar" className="fixed-top">
+  <Link to="/" className="vinculo">Home</Link>
+  <Link to="abm" className="vinculo">ABM</Link>
+</nav>);
+}
+
+function useInterval(callback, delay) {
+  //https://overreacted.io/making-setinterval-declarative-with-react-hooks/
+  const intervalRef = useRef();
+  const callbackRef = useRef(callback);
+
+  // Remember the latest callback:
+  //
+  // Without this, if you change the callback, when setInterval ticks again, it
+  // will still call your old callback.
+  //
+  // If you add `callback` to useEffect's deps, it will work fine but the
+  // interval will be reset.
+
+  useEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
+
+  // Set up the interval:
+
+  useEffect(() => {
+    if (typeof delay === 'number') {
+      intervalRef.current = window.setInterval(() => callbackRef.current(), delay);
+
+      // Clear interval if the components is unmounted or the delay changes:
+      return () => window.clearInterval(intervalRef.current);
+    }
+  }, [delay]);
+  
+  // Returns a ref to the interval ID in case you want to clear it manually:
+  return intervalRef;
+}
+
+function Home(){
+  const [listTransactions, setListTransactions] = useState([]);
+  const [bal,setBal] = useState(0);
+
+  const [loadingData, setLoadingData] = useState(true);
+
+  const columns = useMemo(() => [
+    {
+      Header: "Concepto",
+      accessor: "concept",
+    },
+    {
+      Header: "Monto",
+      accessor: "amount",
+    },
+    {
+      Header: "Fecha",
+      accessor: "opDate",
+    },
+    {
+      Header: "Tipo",
+      accessor: "opType",
+    },
+  ],[]);
+
+  useEffect(() => {
+    async function getData() {
+      await Axios
+        .get("http://localhost:3030/operaciones")
+        .then((response) => {
+          // check if the data is populated
+          console.log(response.data);
+          setListTransactions(response.data);
+          // you tell it that you had the result
+          setLoadingData(false);
+        });
+    }
+    if (loadingData) {
+      // if the result is not ready so you make the axios call
+      getData();
+    }
+  }, []);
+
+
+  const getTransactions = () => {
+    Axios.get("http://localhost:3030/operaciones").then((response) => {
+      let res = response.data;
+      if (res.length !== listTransactions.length){
+        setListTransactions(res);
+      }
+      else{
+        for (let i = 0; i < listTransactions.length; i+=1){
+          if (listTransactions[i].amount!==res[i].amount){
+            // Only compare the amount since it's the only modifiable part of the list.
+            setListTransactions(res);
+            break;
+          }
+        }
+      }
+    });
+  };
+
+  useInterval(() => {
+    getTransactions();
+  }, 3000);
+  
+
+  useEffect(() => {
+    setBal(() => {
+      var bala=0;
+      for (var i = 0; i < listTransactions.length; i+=1){
+        if (listTransactions[i].opType==="Ingreso"){
+          bala+=listTransactions[i].amount;
+        }
+        else{
+          bala-=listTransactions[i].amount;
+        }
+      }
+      return bala;});
+  }, [listTransactions]);
+
+  return (
+  <div className="App">
+    <Container id="table">
+      <h1 className="title">Ultimas 10 transacciones:</h1>
+      <Table columns={columns} data={listTransactions.slice(-10).reverse()} maxRows={10}/>
+    <h1 id="balance">
+      Balance actual: <Badge bg="info">{bal}</Badge>
+    </h1>
+    </Container>
+  </div>
+);
+};
 
 function Table({ columns, data }) {
   // Use the state and functions returned from useTable to build your UI
   const { getTableProps, headerGroups, rows, prepareRow } = useTable({
     columns,
     data,
-  })
+  },useSortBy)
 
   return (
     <BTable striped bordered hover size="sm" {...getTableProps()}>
       <thead>
       {headerGroups.map(headerGroup => (
         <tr {...headerGroup.getHeaderGroupProps()}>
-          {headerGroup.headers.map(column => (
-            <th {...column.getHeaderProps()}>
-              {column.render('Header')}
-            </th>
-          ))}
+        {headerGroup.headers.map(column => (
+          // Add the sorting props to control sorting. For this example
+          // we can add them into the header props
+          <th {...column.getHeaderProps(column.getSortByToggleProps())}>
+            {column.render('Header')}
+            {/* Add a sort direction indicator */}
+            <span>
+              {column.isSorted
+                ? column.isSortedDesc
+                  ? ' 🔽'
+                  : ' 🔼'
+                : ''}
+            </span>
+          </th>
+        ))}
         </tr>
       ))}
       </thead>
@@ -54,7 +215,7 @@ function Table({ columns, data }) {
   )
 }
 
-function App() {
+function ABM() {
   const [concept, setConcept] = useState("");
   const [amount, setAmount] = useState(-1);
   const [opDate,setDate] = useState(new Date().toJSON().slice(0,10));
@@ -69,14 +230,13 @@ function App() {
   const [errorUpdate,setErrorUpdate]=useState(false);
   const [isShowingAlert, setShowingAlert] = useState(false);
   
-
   const columns = useMemo(() => [
     {
       Header: "Concepto",
       accessor: "concept",
     },
     {
-      Header: "Cantidad",
+      Header: "Monto",
       accessor: "amount",
     },
     {
@@ -105,7 +265,7 @@ function App() {
                 Update
               </Button>
           </Col>
-          {errorUpdate ? <div className="alert-danger mt-1">La cantidad debe ser un numero entero y positivo.</div> : ''}
+          {errorUpdate ? <div className="alert-danger mt-1">El monto debe ser un numero entero y positivo.</div> : ''}
         </Row> 
         );
         },
@@ -115,13 +275,12 @@ function App() {
       accessor: "delete",
       Cell: row => {  
         return (       
-        <Button onClick={() => {deleteTransaction(row.cell.row.original.id);
-          console.log('row: ', row.cell.row.original.id);}}>
+        <Button onClick={() => {deleteTransaction(row.cell.row.original.id);}}>
           Delete
         </Button>);
         }
       },
-  ]);
+  ],[]);
 
   useEffect(() => {
     async function getData() {
@@ -209,25 +368,22 @@ function App() {
   };
 
   useEffect(() => {
-    setBal(setBalance());
+    setBal(() => {
+      let aux=0;
+      for (var i = 0; i < listTransactions.length; i+=1){
+        if (listTransactions[i].opType==="Ingreso"){
+          aux+=listTransactions[i].amount;
+        }
+        else{
+          aux-=listTransactions[i].amount;
+        }
+      }
+      return aux;});
   }, [listTransactions]);
-
-  const setBalance = () => {
-    var bala=0;
-    for (var i = 0; i < listTransactions.length; i+=1){
-      if (listTransactions[i].opType==="Ingreso"){
-        bala+=listTransactions[i].amount;
-      }
-      else{
-        bala-=listTransactions[i].amount;
-      }
-    }
-    return bala;
-  }
 
   return (
   <div className="App">
-    <section id="title">
+    <section className="title">
       <h1>Formulario para agregar una transaccion:</h1>
     </section>
     <Container>
@@ -239,10 +395,10 @@ function App() {
           </Col>
         </Form.Group>
         <Form.Group as={Row} className="mb-3">
-          <Form.Label column sm="2">Cantidad:</Form.Label>
+          <Form.Label column sm="2">Monto:</Form.Label>
           <Col sm="10">
               <Form.Control type="number" required min="0" onChange={(event) => {validateAmount(event.target.value)}}/>
-              {errorAmount ? <div className="alert-danger mt-1">La cantidad debe ser un numero entero y positivo.</div> : ''}
+              {errorAmount ? <div className="alert-danger mt-1">El monto debe ser un numero entero y positivo.</div> : ''}
           </Col>
         </Form.Group>
         <Form.Group as={Row} className="mb-3">
@@ -267,15 +423,14 @@ function App() {
       <div className={`alert alert-success ${isShowingAlert ? 'alert-shown' : 'alert-hidden'}`}
           id="succAlert" onTransitionEnd={() => setShowingAlert(false)}
         >Enviado con exito!</div>
+      {error ? <div className='alert alert-danger'>La solicitud no se envio!</div> :''}
     </Container>
     <Container id="table">
     <Table
           columns={columns}
-          data={listTransactions.slice(-10).reverse()}
-          maxRows={10}
+          data={listTransactions.reverse()}
+          usePagination={true}
         />
-      {/* <ReactTable columns={columns} data={listTransactions} minRows={1} showPaginationBottom={false}/> */}
-  {/* https://codesandbox.io/s/vigilant-keldysh-s6yqr */}
     <h3>
       Balance actual: <Badge bg="info">{bal}</Badge>
     </h3>
@@ -284,5 +439,3 @@ function App() {
   </div>
 );
 };
-
-export default App;
