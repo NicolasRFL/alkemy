@@ -21,10 +21,14 @@ Shows current balance and a list of the last 10 transactions registered.
 - The possibility to delete or modify a previously registered operation.
 
 ## Instructions for Test Run:
- 
+
 First the MySQL database and table need to be created. Run the dbase.sql script to create the database and table that will be used.
+
 Then on a terminal stand on the server folder (/server) and run: 'node index.js'
+
 Finally, open another terminal and standing on client folder (/client) run: 'npm start'
+
+Do note that this project was created using node version is 14.15.1 and npm version is 6.14.8.
 
 ## Tecnical requirements
 

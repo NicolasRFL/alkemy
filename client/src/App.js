@@ -55,18 +55,15 @@ function useInterval(callback, delay) {
   useEffect(() => {
     callbackRef.current = callback;
   }, [callback]);
-
   // Set up the interval:
 
   useEffect(() => {
     if (typeof delay === 'number') {
       intervalRef.current = window.setInterval(() => callbackRef.current(), delay);
-
       // Clear interval if the components is unmounted or the delay changes:
       return () => window.clearInterval(intervalRef.current);
     }
   }, [delay]);
-  
   // Returns a ref to the interval ID in case you want to clear it manually:
   return intervalRef;
 }
@@ -157,7 +154,7 @@ function Home(){
     <Container id="table">
       <h1 className="title">Ultimas 10 transacciones:</h1>
       <Table columns={columns} data={listTransactions.slice(-10).reverse()} maxRows={10}/>
-    <h1 id="balance">
+    <h1 className="balance">
       Balance actual: <Badge bg="info">{bal}</Badge>
     </h1>
     </Container>
@@ -227,8 +224,8 @@ function ABM() {
   const [error,setError]=useState(false);
   const [errorAmount,setErrorAmount]=useState(false);
   const [errorType,setErrorType]=useState(false);
-  const [errorUpdate,setErrorUpdate]=useState(false);
   const [isShowingAlert, setShowingAlert] = useState(false);
+  const [errorConcept,setErrorConcept] = useState(false);
   
   const columns = useMemo(() => [
     {
@@ -259,13 +256,12 @@ function ABM() {
             setUpd(e.target.value)}}/>
           </Col>
           <Col sm="2">
-              <Button className={!errorUpdate ? "btn-primary" : "btn-danger"} onClick={() => {
+              <Button className="btn-primary" onClick={() => {
                 updateTransactionAmount(row.cell.row.original.id,upd);
                 }}>
                 Update
               </Button>
           </Col>
-          {errorUpdate ? <div className="alert-danger mt-1">El monto debe ser un numero entero y positivo.</div> : ''}
         </Row> 
         );
         },
@@ -290,7 +286,6 @@ function ABM() {
           // check if the data is populated
           console.log(response.data);
           setListTransactions(response.data);
-          // you tell it that you had the result
           setLoadingData(false);
         });
     }
@@ -326,19 +321,19 @@ function ABM() {
   };
 
   function validateAdd(){
-    let validAmount =validateAmount(amount);
+    let validAmount =validateAmount();
     let validType = validateType();
+    let validConcept = validateConcept();
     setErrorAmount(!validAmount);
     setErrorType(!validType);
-    return (validType && validAmount);
+    setErrorConcept(!validConcept);
+    return (validType && validAmount && validConcept);
   }
 
-  function validateAmount(a){
-    if (a>0){
-      setAmount(a);
+  function validateAmount(){
+    if (amount>0){
       return true;
     }
-    setAmount(a);
     return false;
   }
 
@@ -349,16 +344,19 @@ function ABM() {
     return false;
   }
   
+  function validateUpdate(newAmount){
+    if (newAmount>0){
+      return true;
+    }
+    return false;
+  }
+
   const updateTransactionAmount = (id,newAmount) => {
-    if (validateAmount(newAmount)){
-      setErrorUpdate(false);
+    if (validateUpdate(newAmount)){
       Axios.put("http://localhost:3030/update", { amount: newAmount, id: id }).then(() => {
         getTransactions();
             });
       }
-    else{
-      setErrorUpdate(true);
-    }
   };
 
   const deleteTransaction = (id) => {
@@ -366,6 +364,15 @@ function ABM() {
       getTransactions();
           });
   };
+
+  function validateConcept(){
+    if (concept.trim().length>0){
+      return true;
+    }
+    else{
+      return false;
+    }
+  }
 
   useEffect(() => {
     setBal(() => {
@@ -392,13 +399,14 @@ function ABM() {
           <Form.Label column sm="2">Concepto:</Form.Label>
           <Col sm="10">
             <Form.Control type="text" required onChange={(event) => {setConcept(event.target.value);}}/>
+            {errorConcept ? <div className="alert-danger mt-1">El concepto no puede ser vacio</div> : ''}
           </Col>
         </Form.Group>
         <Form.Group as={Row} className="mb-3">
           <Form.Label column sm="2">Monto:</Form.Label>
           <Col sm="10">
-              <Form.Control type="number" required min="0" onChange={(event) => {validateAmount(event.target.value)}}/>
-              {errorAmount ? <div className="alert-danger mt-1">El monto debe ser un numero entero y positivo.</div> : ''}
+              <Form.Control type="number" required min="0" onChange={(event) => {setAmount(event.target.value)}}/>
+              {errorAmount ? <div className="alert-danger mt-1">El monto debe ser un numero positivo.</div> : ''}
           </Col>
         </Form.Group>
         <Form.Group as={Row} className="mb-3">
@@ -431,9 +439,9 @@ function ABM() {
           data={listTransactions.reverse()}
           usePagination={true}
         />
-    <h3>
+    <h1 className='balance'>
       Balance actual: <Badge bg="info">{bal}</Badge>
-    </h3>
+    </h1>
     <p></p>
     </Container>
   </div>

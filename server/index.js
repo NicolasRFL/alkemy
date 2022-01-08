@@ -10,7 +10,7 @@ app.use(express.json());
 const db = mysql.createConnection({
    user: "root",
    host: "localhost",
-   password: "gatoloser99",
+   password: "",
    database: "Presupuesto",
 });
 
@@ -35,7 +35,6 @@ app.post("/create", (req,res) =>{
 );
 
 app.get("/operaciones",(req,res)=>{
-
   db.query("SELECT * FROM operaciones",(err,result)=>{
     if (err){
       console.log(err);
