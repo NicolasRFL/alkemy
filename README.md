@@ -28,7 +28,7 @@ Then on a terminal stand on the server folder (/server) and run: 'node index.js'
 
 Finally, open another terminal and standing on client folder (/client) run: 'npm start'
 
-Do note that this project was created using node version is 14.15.1 and npm version is 6.14.8.
+Do note that this project was created using node version 14.15.1 and npm version 6.14.8.
 
 ## Tecnical requirements
 
